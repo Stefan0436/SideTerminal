@@ -1,0 +1,115 @@
+plugins {
+	id 'java'
+	id 'maven-publish'
+	id 'com.github.johnrengelman.shadow' version '7.0.0'
+}
+
+apply plugin: 'eclipse'
+apply from: 'asf.mvn.publish.gradle'
+
+group="org.asf.software"
+version="1.0.0.A3"
+def authorname = "AerialWorks Software Foundation"
+
+sourceCompatibility = '1.9'
+targetCompatibility = '1.9'
+
+repositories {
+	mavenCentral()
+	maven { url = "https://aerialworks.ddns.net/maven"; name = "AerialWorks" }
+}
+
+dependencies {
+	testImplementation 'junit:junit:4.12'
+	implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.14.0'
+	implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.14.0'
+	implementation 'org.ow2.asm:asm:9.1'
+	implementation 'org.ow2.asm:asm-tree:9.1'
+	implementation 'org.ow2.asm:asm-commons:9.1'
+}
+
+jar {
+	manifest {
+		attributes([
+			"Specification-Title": project.name,
+			"Specification-Vendor": "${authorname}",
+			"Specification-Version": project.version,
+			"Implementation-Title": project.name,
+			"Implementation-Version": project.version,
+			"Implementation-Vendor" :"${authorname}",
+			"Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+			"Main-Class": "${project.group}.sideterminal.SideTermMain"
+		])
+	}
+	exclude "**/extra/**"
+	exclude "**/tests/**"
+	includeEmptyDirs = false
+}
+
+task javaDocs(type: Javadoc) {
+	classpath = sourceSets.main.runtimeClasspath
+	source = sourceSets.main.allJava
+}
+
+task javadocJar(type: Jar, dependsOn: 'javaDocs') {
+	from javadoc
+	classifier = 'javadoc'
+	exclude "**/extra/**"
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+	classifier = 'sources'
+	from sourceSets.main.allSource
+	exclude "**/extra/**"
+}
+
+artifacts {
+	archives shadowJar
+	archives sourcesJar
+	archives javadocJar
+}
+
+configurePublish {
+	pretty_name "SideTerminal"
+	description "SideTerminal - Debugging shell for java applications"
+	page "https://aerialworks.ddns.net/maven"
+	address "https://aerialworks.ddns.net/maven"
+
+	author {
+		name "$authorname"
+		id "ASF"
+	}
+
+	license {
+		name "GNU General Public License v2.0"
+		url "https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt"
+	}
+	
+	artifact {
+		name "SideTerminal"
+		artifact_description "SideTerminal - Debugging shell for java applications"
+		artifact_version project.version
+		
+		task tasks.javadocJar
+		task tasks.sourcesJar
+		task {
+			artifact tasks.shadowJar
+			classifier ''
+		}
+	}
+}
+
+test {
+	include "**/**Test**"
+	exclude "**/**SpecialTest**"
+	minHeapSize = "128m"
+	maxHeapSize = "2G"
+}
+
+task specialTest (type: Test, dependsOn: test) {
+	include "**/**SpecialTest**"
+	minHeapSize = "128m"
+	maxHeapSize = "2G"
+}
+
+initializeASFMVNPublish()
